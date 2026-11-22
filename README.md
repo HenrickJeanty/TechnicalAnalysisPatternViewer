@@ -69,6 +69,8 @@ showPatternViewers[levels, "Levels" -> {3, 4}]
 
 Each one has a full usage message: `?showPatternViewer`, `?loadCandlesticks`, ...
 
+The same texts are collected in [`Documentation/API_Reference.md`](Documentation/API_Reference.md) (generated from the usage messages).
+
 | Function | What it does |
 |---|---|
 | `loadCandlesticks[source, options]` | reads candlesticks (table, Dataset, list of associations, CSV file, ticker) and gives a clean `Tabular` |
@@ -111,6 +113,7 @@ Each one has a full usage message: `?showPatternViewer`, `?loadCandlesticks`, ..
 Kernel/      the code of the package (init.m loads it)
 vendor/      the analysis and drawing code (pinned copy, see vendor/README.md)
 Data/        SampleDaily.csv, the synthetic sample
+Documentation/  API_Reference.md (every function, with its options) and the draft of the Community post
 Notebooks/   TechnicalAnalysisPatternViewer.nb, the guide
 Tests/       *.wlt test files (run with TestReport)
 ```
