@@ -1,0 +1,292 @@
+Notebook[{Cell["Technical Analysis Pattern Viewer: the guide", "Title"], 
+  Cell["This notebook explains every function of the package, one cell at a \
+time. Each cell starts with a comment (* ... *) that says what it does, and \
+every call spells out all of its options with their default values, so that \
+you can change them. Run the cells in order, from the top, in a fresh kernel. \
+Cells marked \"optional\" need an internet connection.", "Text"], 
+  Cell["What the package does: it finds the support lines, the resistance \
+lines and the chart patterns (triangles, wedges, broadening formations, \
+rectangles, channels) on the candlesticks of a stock, lists them in tables, \
+and draws the ones you pick. It works on any candlesticks: your own table, a \
+CSV file, a ticker, or the synthetic sample that comes with the package. The \
+sample is made up with a random-number generator: it is NOT a real stock.", 
+   "Text"], Cell["0. Load the package", "Section"], 
+  Cell["Kernel/init.m loads the four code files (Candlesticks.wl, Data.wl, \
+Engine.wl, Viewer.wl) and then makes their 16 public functions available by \
+their short names (for example showPatternViewer instead of \
+TechnicalAnalysisPatternViewer`Viewer`showPatternViewer). NotebookDirectory[] \
+is the folder of this notebook (Notebooks/), so its parent is the folder of \
+the package: nothing depends on where the folder is on your disk. The first \
+time a function of the analysis is used, the code of the vendor/ folder is \
+loaded too; this takes a few seconds.", "Text"], 
+  Cell["(* 0. Load the package. The path is built from the folder of this \
+notebook, so the package can be anywhere. *)\nGet[\n  FileNameJoin[\n    {\n  \
+    ParentDirectory[NotebookDirectory[]],\n      \"Kernel\",\n      \
+\"init.m\"\n    }\n  ]\n]", "Input"], Cell["If a note says that an old \
+definition was cleared, a previous session had defined a function of the same \
+name in the Global` context; init.m removed it. Every function has a usage \
+message: run ?showPatternViewer, ?loadCandlesticks, and so on.", "Text"], 
+  Cell["(* The 16 public functions of the package (the names of its contexts \
+that are not private). Ask ?name for the usage of any of them. *)\nUnion[\n  \
+Map[\n    Last[StringSplit[#, \"`\"]] &,\n    Select[\n      \
+Names[\"TechnicalAnalysisPatternViewer`*`*\"],\n      ! StringContainsQ[#, \
+\"Private\"] &\n    ]\n  ]\n]", "Input"], Cell["1. Getting candlesticks", 
+   "Section"], Cell["Every function works on a table of candlesticks: a \
+Tabular with the columns Date, Open, High, Low, Close, Volume, Ticker, Period \
+and logReturn (the log of Close divided by the previous Close). \
+loadCandlesticks makes this table from your data. sampleCandlesticks gives \
+the synthetic sample in the same form.", "Text"], 
+  Cell["1.1 The sample", "Subsection"], Cell["(* The synthetic sample as \
+daily candlesticks (about five years). The period can be \"daily\", \
+\"weekly\", \"monthly\" or \"yearly\". *)\ndaily = \
+sampleCandlesticks[\"daily\"];\n\n(* The number of candlesticks and the first \
+five rows of the table. *)\n{\n  Length[daily],\n  Take[daily, 5]\n}", 
+   "Input"], Cell["(* The same series as coarser candlesticks. A weekly \
+candlestick has the Open of its first day, the Close of its last, the highest \
+High, the lowest Low and the sum of the volumes. *)\nweekly = \
+sampleCandlesticks[\"weekly\"];\nmonthly = \
+sampleCandlesticks[\"monthly\"];\nyearly = \
+sampleCandlesticks[\"yearly\"];\n\n(* How many candlesticks each one has. \
+*)\n<|\n  \"daily\" -> Length[daily],\n  \"weekly\" -> Length[weekly],\n  \
+\"monthly\" -> Length[monthly],\n  \"yearly\" -> Length[yearly]\n|>", 
+   "Input"], Cell["1.2 Your own table", "Subsection"], 
+  Cell["loadCandlesticks accepts a Tabular, a Dataset, or a list of \
+associations (or of lists of rules). The names of the keys are matched \
+without regard to case. Date can be a DateObject, a date string or a list {y, \
+m, d}. Rows whose Open, High, Low or Close is missing or not a number are \
+left out, and a message says how many.", "Text"], 
+  Cell["(* A few rows of your own, as a list of associations. Replace them \
+with your data. *)\nmyRows = {\n  <|\"Date\" -> {2025, 1, 2}, \"Open\" -> \
+10.0, \"High\" -> 10.8, \"Low\" -> 9.7, \"Close\" -> 10.5, \"Volume\" -> \
+1200|>,\n  <|\"Date\" -> {2025, 1, 3}, \"Open\" -> 10.5, \"High\" -> 11.2, \
+\"Low\" -> 10.3, \"Close\" -> 11.0, \"Volume\" -> 1500|>,\n  <|\"Date\" -> \
+{2025, 1, 6}, \"Open\" -> 11.0, \"High\" -> 11.1, \"Low\" -> 10.2, \"Close\" \
+-> 10.4, \"Volume\" -> 1700|>,\n  <|\"Date\" -> {2025, 1, 7}, \"Open\" -> \
+10.4, \"High\" -> 10.9, \"Low\" -> 10.0, \"Close\" -> 10.8, \"Volume\" -> \
+900|>,\n  <|\"Date\" -> {2025, 1, 8}, \"Open\" -> 10.8, \"High\" -> 11.6, \
+\"Low\" -> 10.7, \"Close\" -> 11.5, \"Volume\" -> 2100|>\n};\n\n(* Make the \
+table of candlesticks, with every option at its default value except the \
+ticker.\n   \"Source\" says what kind of source it is (Automatic finds out); \
+\"StartDate\" and \"EndDate\" cut a window of dates (All keeps everything);\n \
+  \"Resample\" makes weekly / monthly / yearly candlesticks (None keeps the \
+given ones); \"Period\" is the text of the Period column; \"Ticker\" the text \
+of the Ticker column. *)\nmyCandles = loadCandlesticks[\n  myRows,\n  \
+\"Source\" -> Automatic,\n  \"StartDate\" -> All,\n  \"EndDate\" -> All,\n  \
+\"Resample\" -> None,\n  \"Period\" -> Automatic,\n  \"Ticker\" -> \
+\"MINE\"\n]", "Input"], Cell["1.3 A CSV file", "Subsection"], 
+  Cell["The first line of the file names the columns: Date, Open, High, Low, \
+Close and, if you have it, Volume. The file Data/SampleDaily.csv is such a \
+file; here it is loaded from its place in the package, with a window of dates \
+and monthly resampling.", "Text"], Cell["(* The path of the CSV file of the \
+package. For your own file, give its path instead. *)\ncsvFile = \
+FileNameJoin[\n  {\n    ParentDirectory[NotebookDirectory[]],\n    \
+\"Data\",\n    \"SampleDaily.csv\"\n  }\n];\n\n(* Load it: only 2022 and \
+2023, and make monthly candlesticks from the daily ones. *)\ncsvCandles = \
+loadCandlesticks[\n  csvFile,\n  \"Source\" -> \"CSV\",\n  \"StartDate\" -> \
+{2022, 1, 1},\n  \"EndDate\" -> {2023, 12, 31},\n  \"Resample\" -> \
+\"monthly\",\n  \"Period\" -> Automatic,\n  \"Ticker\" -> \"FROM \
+CSV\"\n];\n\n(* The number of monthly candlesticks and their first three \
+rows. *)\n{\n  Length[csvCandles],\n  Take[csvCandles, 3]\n}", "Input"], 
+  Cell["1.4 A ticker (optional: needs an internet connection)", 
+   "Subsection"], Cell["A ticker string is read with FinancialData (daily \
+prices). The window of dates matters: the analysis time grows quickly with \
+the number of candlesticks (see section 4), so for years of daily data make \
+weekly or monthly candlesticks.", "Text"], Cell["(* Optional. Monthly \
+candlesticks of a ticker from FinancialData, for 2022-2025. *)\npcg = \
+loadCandlesticks[\n  \"PCG\",\n  \"Source\" -> \"FinancialData\",\n  \
+\"StartDate\" -> {2022, 1, 1},\n  \"EndDate\" -> {2025, 12, 31},\n  \
+\"Resample\" -> \"monthly\",\n  \"Period\" -> Automatic,\n  \"Ticker\" -> \
+Automatic\n];\n\n(* The number of candlesticks. *)\nLength[pcg]", "Input"], 
+  Cell["1.5 Making coarser candlesticks yourself", "Subsection"], 
+  Cell["(* resampleCandlesticks does the \"Resample\" option on its own: ISO \
+weeks (Monday to Sunday), calendar months or calendar years. \
+*)\nresampleCandlesticks[\n  daily,\n  \"weekly\"\n] // Length", "Input"], 
+  Cell["2. Drawing candlesticks", "Section"], Cell["(* A plain candlestick \
+chart: a wick from the Low to the High and a body from the Open to the Close. \
+The dates are on the bottom axis and the number of each candlestick on the \
+top axis.\n   \"TopIndices\" -> False removes the numbers. These numbers are \
+the \"FromIndex\" and \"ToIndex\" of the tables of section 4. \
+*)\nshowCandlesticks[\n  monthly,\n  \"sample, monthly\",\n  \"ImageSize\" -> \
+900,\n  \"AspectRatio\" -> 0.5,\n  \"UpColor\" -> RGBColor[0.1, 0.6, 0.2],\n  \
+\"DownColor\" -> RGBColor[0.85, 0.15, 0.15],\n  \"TopIndices\" -> True\n]", 
+   "Input"], 
+  Cell["3. The same stock at several scales: merging candlesticks", 
+   "Section"], Cell["mergeCandlesticks[candles, n] merges n candlesticks at a \
+time into one: Open of the first, Close of the last, highest High, lowest \
+Low, sum of the volumes. mergeCandlestickLevels merges again and again, so \
+that you get every scale from the original to a single candlestick. \
+\"Remainder\" -> \"Drop\" leaves out an incomplete last group; \"Keep\" \
+merges it too.", "Text"], Cell["(* Merge the weekly candlesticks 4 at a time: \
+each result candlestick is 4 weeks. *)\nfourWeeks = mergeCandlesticks[\n  \
+weekly,\n  4,\n  \"Remainder\" -> \"Drop\"\n];\n\n(* The number of \
+candlesticks before and after. *)\n{\n  Length[weekly],\n  \
+Length[fourWeeks]\n}", "Input"], Cell["(* All the levels of merging 2 at a \
+time: level 1 is the original, level 2 has 2 weeks in each candlestick, level \
+3 has 4, and so on until one candlestick is left.\n   \"MaxLevels\" -> All \
+stops only when the candlesticks run out; a number limits the merges after \
+the original. *)\nlevels = mergeCandlestickLevels[\n  weekly,\n  2,\n  \
+\"Remainder\" -> \"Drop\",\n  \"MaxLevels\" -> All\n];\n\n(* The number of \
+candlesticks of each level, and how many original (weekly) candlesticks make \
+one candlestick of the level. *)\n<|\n  \"candlesticks\" -> Length /@ \
+levels,\n  \"grouping\" -> mergeGroupSizes[levels, 2]\n|>", "Input"], 
+  Cell["(* Look at one level: level 5 has 16 weekly candlesticks in each one. \
+*)\nshowCandlesticks[\n  levels[[5]],\n  \"level 5, grouping 16\",\n  \
+\"ImageSize\" -> 700,\n  \"AspectRatio\" -> 0.5,\n  \"UpColor\" -> \
+RGBColor[0.1, 0.6, 0.2],\n  \"DownColor\" -> RGBColor[0.85, 0.15, 0.15],\n  \
+\"TopIndices\" -> True\n]", "Input"], 
+  Cell["4. Finding the lines and the patterns", "Section"], 
+  Cell["analyzeCandlesticks does the analysis and gives a feature set, a \
+Dataset of everything that was found. Its time grows faster than the square \
+of the number of candlesticks: about 1 s for 30 candlesticks, 5 s for 90, 17 \
+s for 150 and 36 s for 200. Use weekly or monthly candlesticks, or a window \
+of dates, rather than years of daily ones.", "Text"], 
+  Cell["The rules: a resistance (support) passes through two peaks (valleys). \
+It is valid while no candlestick between its first anchor and the last one \
+pierces it with its High (Low) by more than TolerancePercent of the High-Low \
+range of the candlesticks from the first anchor to the candlestick that is \
+tested. A pattern is a resistance and a support that are valid at the same \
+candlestick and have one of 13 shapes. The lines are found candlestick by \
+candlestick, so what is valid at candlestick k uses nothing after k.", 
+   "Text"], Cell["(* The analysis of the monthly sample, with every option at \
+its default value.\n   \"Sigma\" -> 0 finds the peaks and valleys: a \
+candlestick whose High is above both neighbours' Highs, or whose Low is below \
+both neighbours' Lows; a larger integer asks for more extreme ones.\n   \
+\"StrictRanges\" -> True gives one up or down edge per segment (False: every \
+pair of fields).\n   \"SupportResistance\" gives the rules of the lines and \
+patterns: \"TolerancePercent\" is how far, in percent of the High-Low range, \
+a High (Low) may pierce a resistance (support) and still count as touching \
+it;\n   \"MinTouches\" is the number of touches between its two anchors that \
+a line needs; \"PatternBand\" is the band around 1 of the ratio of the gap \
+between the two lines now to the gap at the start that counts as parallel. \
+False switches the lines and patterns off.\n   \"HarmonicPatterns\" -> True \
+also looks for the harmonic patterns (Gartley, Bat, ...). \"GraphChart\" -> \
+True also builds the picture of the candlesticks as a graph. *)\nfeatureSet = \
+analyzeCandlesticks[\n  monthly,\n  \"Sigma\" -> 0,\n  \"StrictRanges\" -> \
+True,\n  \"SupportResistance\" -> {\"TolerancePercent\" -> 5, \"MinTouches\" \
+-> 1, \"PatternBand\" -> 0.15},\n  \"HarmonicPatterns\" -> False,\n  \
+\"GraphChart\" -> False\n];\n\n(* What the feature set contains: the names of \
+its keys. *)\nNormal[Keys[featureSet]]", "Input"], 
+  Cell["(* The support and resistance lines: one row for every line and every \
+candlestick at which it is alive (valid).\n   Kind is \"Res\" or \"Sup\"; \
+Direction is ResU, ResD, ResF, SupU, SupD or SupF (rising U, falling D, flat \
+F);\n   FromIndex is the first anchor of the line and AnchorIndex the second; \
+ToIndex is the candlestick at which the row is valid;\n   FromPrice and \
+ToPrice are the prices of the line at FromIndex and ToIndex; Touches counts \
+the candlesticks that touched it and Goodness scores them. *)\nlines = \
+supportResistanceTable[featureSet];\n\n(* The number of rows of each \
+direction (a line that stays valid for 6 candlesticks gives 6 rows), and the \
+first rows. *)\n{\n  Counts[Normal[lines][[All, \"Direction\"]]],\n  \
+Take[lines, 5]\n}", "Input"], Cell["(* The patterns: one row for every \
+pattern and every candlestick at which it is valid.\n   ToIndex is the \
+candlestick at which the pattern is valid; StartIndex where its pair of lines \
+starts; Width its width in candlesticks;\n   Relation says if the lines \
+converge, diverge or are parallel; GapRatio is the gap between the lines now \
+divided by the gap at the start. *)\npatterns = \
+patternTable[featureSet];\n\n(* For each of the 13 patterns, the number of \
+candlesticks at which it was valid, and the first rows. *)\n{\n  \
+Counts[Normal[patterns][[All, \"PatternName\"]]],\n  Take[patterns, 3]\n}", 
+   "Input"], 
+  Cell[
+   "(* The names of the 13 patterns that are looked for. *)\npatternNames[]", 
+   "Input"], Cell["(* The segments between peaks and valleys: Direction U \
+(up) or D (down), the indices and prices of both ends, the Range (ToPrice - \
+FromPrice), the log ratio and the angle. *)\nsegments = \
+segmentTable[featureSet];\n\n(* The number of segments and the first rows. \
+*)\n{\n  Length[segments],\n  Take[segments, 5]\n}", "Input"], 
+  Cell["(* A query on the tables: the lines that are valid at candlestick 40, \
+as a Dataset. *)\nlines[\n  Select[#ToIndex == 40 &]\n]", "Input"], 
+  Cell["5. The interactive panel", "Section"], Cell["showPatternViewer gives \
+one panel for a table of candlesticks. The panel has, from the top: the \
+title; the Sigma field and the Load button (change the sigma and press Load \
+to find the peaks and valleys again); a status line; the field \"Alive at \
+candle\" (the tables list the lines and patterns valid at that candlestick; \
+the default is the last one, \"Last\" and \"All\" are shortcuts); one line of \
+scrollable windows (Patterns, Resistances, Supports) above the chart; and the \
+chart with the Segments table at its right.", "Text"], 
+  Cell["Using it: the chart starts without lines. Press Show in a row of a \
+table to draw that line (or pattern) on the chart, with its dotted extension \
+and the candlesticks that touch it; press Hide to remove it. \"Select all\" \
+draws every line listed, \"Clear Support/Resistance\" removes them all. Move \
+the mouse over the chart to read the date, the prices and the volume of a \
+candlestick in the line above it. Show in the Segments table draws a \
+segment.", "Text"], Cell["(* One panel for the monthly sample, with every \
+option at its default value.\n   \"Sigma\", \"StrictRanges\", \
+\"SupportResistance\", \"HarmonicPatterns\" and \"GraphChart\" are the \
+options of analyzeCandlesticks (section 4).\n   \"AutoLoad\" -> Automatic \
+computes the panel when it is shown (False: show it empty and press Load).\n  \
+ \"TopTables\" -> True puts the resistance and support windows on a line \
+above the chart (False: all the windows at the right).\n   \"TableColumns\" \
+-> \"Compact\" makes narrow tables and puts the Patterns window on the same \
+line as the other two (\"All\": every column, and Patterns under the \
+Segments).\n   \"HarmonicInRow\" -> False puts the harmonic patterns panel \
+(if \"HarmonicPatterns\" is on) at the right (True: in the line above the \
+chart).\n   \"LinesAtStart\" -> False starts the chart without lines (True: \
+the lines valid at the last candlestick are drawn).\n   \"RegimeBars\" -> \
+False leaves out the regime bars, which need data that this package does not \
+have.\n   \"EdgeThickness\" and \"ArrowSize\" set the thickness and the \
+arrowheads of the segments drawn on the chart.\n   \"Tag\" names the panel, \
+so that you can read its feature set with patternViewerFeatureSet. \
+*)\nshowPatternViewer[\n  monthly,\n  \"sample, monthly\",\n  \"Sigma\" -> \
+0,\n  \"AutoLoad\" -> Automatic,\n  \"StrictRanges\" -> True,\n  \
+\"GraphChart\" -> False,\n  \"SupportResistance\" -> True,\n  \
+\"EdgeThickness\" -> 0.002,\n  \"ArrowSize\" -> 0.005,\n  \
+\"HarmonicPatterns\" -> False,\n  \"TopTables\" -> True,\n  \"HarmonicInRow\" \
+-> False,\n  \"TableColumns\" -> \"Compact\",\n  \"LinesAtStart\" -> False,\n \
+ \"RegimeBars\" -> False,\n  \"Tag\" -> \"demo\"\n]", "Input"], 
+  Cell["(* The feature set that the panel above computed: the tables of \
+section 4 can be read from it. \
+*)\nsupportResistanceTable[patternViewerFeatureSet[\"demo\"]][\n  \
+Select[#Kind == \"Res\" &]\n] // Take[#, UpTo[5]] &", "Input"], 
+  Cell["(* The same panel with every column of the tables (\"TableColumns\" \
+-> \"All\"), the Patterns window under the Segments, and the lines valid at \
+the last candlestick drawn at the start. *)\nshowPatternViewer[\n  monthly,\n \
+ \"sample, monthly, all columns\",\n  \"Sigma\" -> 0,\n  \"AutoLoad\" -> \
+Automatic,\n  \"StrictRanges\" -> True,\n  \"GraphChart\" -> False,\n  \
+\"SupportResistance\" -> True,\n  \"EdgeThickness\" -> 0.002,\n  \
+\"ArrowSize\" -> 0.005,\n  \"HarmonicPatterns\" -> False,\n  \"TopTables\" -> \
+True,\n  \"HarmonicInRow\" -> False,\n  \"TableColumns\" -> \"All\",\n  \
+\"LinesAtStart\" -> True,\n  \"RegimeBars\" -> False,\n  \"Tag\" -> \
+\"demoAll\"\n]", "Input"], Cell["6. One independent panel for each scale", 
+   "Section"], Cell["showPatternViewers makes one panel for each level of \
+mergeCandlestickLevels. The panels are independent: pressing Show in one does \
+not change another. Each is titled with its level, its grouping size and its \
+number of candlesticks. \"Levels\" picks the levels (All for all of them); \
+\"MergeSize\" is the n of mergeCandlestickLevels (Automatic infers it). The \
+other options are those of showPatternViewer. Level 1 of the weekly sample \
+has 250 candlesticks and would take about a minute, so levels 3 and 4 are \
+used here (62 and 31 candlesticks).", "Text"], Cell["(* Two panels, for \
+levels 3 and 4 of the weekly levels of section 3, with every option spelled \
+out. *)\nshowPatternViewers[\n  levels,\n  \"Levels\" -> {3, 4},\n  \
+\"MergeSize\" -> 2,\n  \"Sigma\" -> 0,\n  \"AutoLoad\" -> Automatic,\n  \
+\"StrictRanges\" -> True,\n  \"GraphChart\" -> False,\n  \
+\"SupportResistance\" -> True,\n  \"EdgeThickness\" -> 0.002,\n  \
+\"ArrowSize\" -> 0.005,\n  \"HarmonicPatterns\" -> False,\n  \"TopTables\" -> \
+True,\n  \"HarmonicInRow\" -> False,\n  \"TableColumns\" -> \"Compact\",\n  \
+\"LinesAtStart\" -> False,\n  \"RegimeBars\" -> False\n]", "Input"], 
+  Cell["7. Where things are", "Section"], Cell["Kernel/Candlesticks.wl: \
+mergeCandlesticks, mergeCandlestickLevels, mergeGroupSizes, \
+showCandlesticks.\nKernel/Data.wl: loadCandlesticks, resampleCandlesticks, \
+sampleCandlesticks.\nKernel/Engine.wl: loadEngine, analyzeCandlesticks, \
+supportResistanceTable, patternTable, segmentTable, \
+patternNames.\nKernel/Viewer.wl: showPatternViewer, showPatternViewers, \
+patternViewerFeatureSet.\nvendor/: the analysis and drawing code, a pinned \
+copy of a larger project (see vendor/README.md).\nEach file starts with a \
+comment that says what it does, and every public function has a usage message \
+(?name).", "Text"], Cell["8. If something does not work", "Section"], 
+  Cell["A function comes back unevaluated (it is written in black, as it was \
+typed): the package is not loaded in this kernel, or an old definition of the \
+same name in the Global` context hides the new one. Restart the kernel \
+(Evaluation > Quit Kernel > Local) and run section 0 first.", "Text"], 
+  Cell["\"A panel needs at least 5 candlesticks\": the analysis finds nothing \
+with fewer. Give it more, or merge fewer at a time.", "Text"], 
+  Cell["A message that starts with showPatternViewer::patch: the drawing code \
+in vendor/ was changed and the panel layout cannot adjust one of its groups \
+of changes; that group is skipped, and the panel is still correct but wider. \
+See vendor/README.md.", "Text"], Cell["The panel takes a long time: the \
+number of candlesticks is too large (see section 4). Make weekly or monthly \
+candlesticks with \"Resample\", or cut a window with \"StartDate\" and \
+\"EndDate\".", "Text"], Cell["Nothing drawn on the chart: this is the normal \
+start. Press Show in a row of a table, or \"Select all\".", "Text"], 
+  Cell["This package is a way of looking at charts. It makes no claim that a \
+pattern predicts anything, and it is not investment advice.", "Text"]}, 
+ WindowSize -> {1000, 800}, StyleDefinitions -> "Default.nb"]
