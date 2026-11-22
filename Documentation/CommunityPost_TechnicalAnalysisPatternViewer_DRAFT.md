@@ -1,7 +1,5 @@
 # Technical Analysis Pattern Viewer: see support, resistance and chart patterns on any candlesticks
 
-*DRAFT for Wolfram Community. Items in [brackets] are for you to fill in or check before posting. No .zip is attached (Community cannot take it): the code is on GitHub.*
-
 ---
 
 **Code and guide notebook:** https://github.com/HenrickJeanty/TechnicalAnalysisPatternViewer (MIT licence)
@@ -17,9 +15,21 @@ You give it candlesticks (your own table, a CSV file, a ticker through `Financia
 
 It lists them in scrollable tables with a **Show / Hide** button in every row. **The chart starts empty and draws only what you pick.**
 
-[FIGURE 1: screenshot of a panel on the monthly sample, with one resistance, one support and one pattern shown. Take it from section 5 of the guide notebook.]
+![XOM, weekly candlesticks of 2024-2025: an ascending triangle](https://www.wolframcloud.com/obj/henrickjeanty/TechnicalAnalysisPatternViewer/Figures/Fig1_AscendingTriangle_XOM.png)
+
+*Figure 1. XOM, weekly candlesticks for 2024-2025: an ascending triangle (flat resistance, rising support), with the dotted extensions of its two lines. The chart is drawn from the tables that the package produces.*
 
 > The sample data is **synthetic** (a seeded random walk), so that every example runs without an internet connection. It is not a real stock.
+
+## For developers
+
+The package is meant to be used as building blocks as well as through the panel. Every one of the 16 public functions has a usage message (`?analyzeCandlesticks`, `?loadCandlesticks`, ...), and the repository has:
+
+* `Documentation/API_Reference.md`: every function, its arguments and all its options (generated from the usage messages, so it matches the code).
+* `Notebooks/TechnicalAnalysisPatternViewer.nb`: a guide that runs every function, with every option spelled out.
+* `Tests/`: 83 tests that also show how each function is meant to be called.
+
+The pieces can be used separately: `loadCandlesticks` turns any data into a clean `Tabular`; `analyzeCandlesticks` gives a feature set (a `Dataset`) that you can query yourself with `supportResistanceTable`, `patternTable` and `segmentTable`; and `mergeCandlestickLevels` gives the same stock at several scales. The code is in four files of `Kernel/`, each starting with a comment that says what it does.
 
 ## Quick start
 
@@ -69,7 +79,9 @@ showPatternViewer[
 * Move the mouse over the chart to read the date, prices and volume of a candlestick.
 * The **Segments** table (the up and down moves between peaks and valleys) is at the right of the chart.
 
-[FIGURE 2: the same panel with "TableColumns" -> "All", showing every column.]
+![PCG, weekly candlesticks of 2024-2025: a rising channel](https://www.wolframcloud.com/obj/henrickjeanty/TechnicalAnalysisPatternViewer/Figures/Fig4_RisingChannel_PCG.png)
+
+*Figure 2. PCG, weekly candlesticks for 2024-2025: a rising channel (a resistance and a support that both rise), valid at candlestick 52.*
 
 ## The same stock at several scales
 
@@ -94,7 +106,9 @@ showPatternViewers[
 
 A resistance that looks minor on the weekly chart can be a major one on the 8-week chart; putting the panels one above the other makes that easy to see.
 
-[FIGURE 3: two panels, levels 3 and 4, one above the other.]
+![PEP at one week and at two weeks per candlestick: a symmetric triangle](https://www.wolframcloud.com/obj/henrickjeanty/TechnicalAnalysisPatternViewer/Figures/Fig3_TwoScales_PEP.png)
+
+*Figure 3. PEP at one week per candlestick (top) and at two weeks per candlestick (bottom): the same symmetric triangle seen at two scales. The lower chart was made with `mergeCandlesticks[pep, 2]`.*
 
 ## Not only a panel: the tables
 
@@ -116,6 +130,10 @@ Counts[Normal[patternTable[featureSet]][[All, "PatternName"]]]
 segmentTable[featureSet]
 ```
 
+![The tables for XOM: lines, patterns and segments](https://www.wolframcloud.com/obj/henrickjeanty/TechnicalAnalysisPatternViewer/Figures/Fig2_Tables_XOM.png)
+
+*Figure 4. The tables behind Figure 1 (XOM, weekly): the lines valid at candlestick 103, the patterns found there and the first segments, as `Dataset`s (main columns shown).*
+
 There are 16 public functions in all, each with a usage message (`?showPatternViewer`, `?loadCandlesticks`, ...). The guide notebook `Notebooks/TechnicalAnalysisPatternViewer.nb` runs every one of them, spelling out every option with its default value.
 
 ## How it works (for the curious)
@@ -130,10 +148,10 @@ One trick that may interest other package authors: the chart code keeps its stat
 
 * **Speed.** The analysis time grows faster than the square of the number of candlesticks: about 1 s for 30 candlesticks, 5 s for 90, 17 s for 150 and 36 s for 200. Thousands of daily candlesticks would take very long. Use weekly or monthly candlesticks, a window of dates, or the merged levels.
 * **It needs the front end** (buttons, tooltips): use it in a notebook, not in a plain script.
-* **It is a way of looking at charts, not a predictor.** The package makes no claim that these patterns tell you anything about future prices. [Optional, your call: "In my own tests of related pattern definitions I did not find evidence that they predict returns."] It is not investment advice.
+* **It is a way of looking at charts, not a predictor.** The package makes no claim that these patterns tell you anything about future prices. In my own tests of related pattern definitions I did not find evidence that they predict returns. It is not investment advice.
 * Wolfram Language 14.2 or later (it uses `Tabular`); developed on 15.0.
 * 83 tests are in `Tests/` (run them with `TestReport`); the one that reads a ticker needs an internet connection.
 
 ## Feedback welcome
 
-If a pattern is missing, a definition looks wrong, or a panel behaves oddly on your data, please tell me here or open an issue on GitHub. [Optional: the kind of data you would like it to read.]
+If a pattern is missing, a definition looks wrong, or a panel behaves oddly on your data, please tell me here or open an issue on GitHub](https://github.com/HenrickJeanty/TechnicalAnalysisPatternViewer/issues). 
