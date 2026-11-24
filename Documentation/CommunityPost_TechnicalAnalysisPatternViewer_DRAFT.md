@@ -1,5 +1,7 @@
 # Technical Analysis Pattern Viewer: see support, resistance and chart patterns on any candlesticks
 
+**Posted on Wolfram Community:** [https://community.wolfram.com/t/technical-analysis-pattern-viewer-see-support-resistance-and-chart-patterns-on-any-candlesticks/28642](https://community.wolfram.com/t/technical-analysis-pattern-viewer-see-support-resistance-and-chart-patterns-on-any-candlesticks/28642).
+
 ---
 
 **Code and guide notebook:** https://github.com/HenrickJeanty/TechnicalAnalysisPatternViewer (MIT licence)
