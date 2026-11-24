@@ -7,6 +7,8 @@ A Wolfram Language tool to **see support lines, resistance lines and chart patte
 * Works on **any candlesticks**: your own table, a CSV file, a ticker (through `FinancialData`) or the synthetic sample that comes with the package.
 * Looks at the same stock **at several scales**: `mergeCandlestickLevels` merges n candlesticks into one, level after level (2 at a time: 1, 2, 4, 8, ... original candlesticks per candlestick), and `showPatternViewers` gives an independent panel for each level.
 
+**Related study:** where the Open and the Close sit in the range of a candlestick, measured on 519 stocks, in the Wolfram Community post [Do the Open and the Close of a candlestick prefer certain places in its range? A study of 519 stocks](https://community.wolfram.com/t/do-the-open-and-the-close-of-a-candlestick-prefer-certain-places-in-its-range-a-study-of-519-stocks/28660) (code: [RangePositionPreferences](https://github.com/HenrickJeanty/RangePositionPreferences)).
+
 > The sample data in `Data/SampleDaily.csv` is **synthetic** (a seeded random walk). It is there so that every example runs without an internet connection. It is not a real stock.
 
 ## Install
